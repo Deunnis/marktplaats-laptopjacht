@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Laptopjacht</title>
+<style>
+:root{
+  --ink:#101720; --ink2:#3B4859; --ink3:#69778C;
+  --paper:#F4F7FB; --surf:#FFFFFF; --surf2:#EAF0F8; --line:#D9E2EE;
+  --accent:#2B5CE6; --accent-soft:#E4EAFC; --accent-ink:#1B3FA8; --on-accent:#FFFFFF;
+  --good:#0B7A5B; --good-soft:#DBF2E9;
+  --warn:#9C5600; --warn-soft:#FAEEDA;
+  --bad:#AE2620; --bad-soft:#FAE5E3;
+  --shadow:0 1px 2px rgba(16,23,32,.05),0 4px 14px rgba(16,23,32,.05);
+  --r:10px;
+  --f-disp:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#E9EEF6; --ink2:#B2BDCD; --ink3:#818FA3;
+  --paper:#0C1118; --surf:#141C25; --surf2:#1C2530; --line:#27323F;
+  --accent:#7E97FF; --accent-soft:#1A2340; --accent-ink:#AFC0FF; --on-accent:#0C1118;
+  --good:#42CE9E; --good-soft:#0E2B23;
+  --warn:#E2A557; --warn-soft:#2C2214;
+  --bad:#F27F74; --bad-soft:#2D1917;
+  --shadow:0 1px 2px rgba(0,0,0,.45),0 6px 20px rgba(0,0,0,.35);
+}}
+:root[data-theme="dark"]{
+  --ink:#E9EEF6; --ink2:#B2BDCD; --ink3:#818FA3;
+  --paper:#0C1118; --surf:#141C25; --surf2:#1C2530; --line:#27323F;
+  --accent:#7E97FF; --accent-soft:#1A2340; --accent-ink:#AFC0FF; --on-accent:#0C1118;
+  --good:#42CE9E; --good-soft:#0E2B23;
+  --warn:#E2A557; --warn-soft:#2C2214;
+  --bad:#F27F74; --bad-soft:#2D1917;
+  --shadow:0 1px 2px rgba(0,0,0,.45),0 6px 20px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;overflow-x:hidden}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;
+  line-height:1.5;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:1180px;margin:0 auto;padding:0 13px 40px}
+
+/* ---------- sticky top bar ---------- */
+.top{position:sticky;top:0;z-index:20;background:var(--paper);
+  padding:calc(env(safe-area-inset-top) + 11px) 13px 9px;border-bottom:1px solid var(--line);
+  margin:0 0 12px}
+.toprow{display:flex;align-items:center;gap:10px;max-width:1180px;margin:0 auto}
+.brand{font-family:var(--f-disp);font-weight:700;font-size:21px;letter-spacing:-.02em;flex:1;
+  margin:0;line-height:1.1}
+.iconbtn{width:38px;height:38px;flex:none;border:1px solid var(--line);background:var(--surf);
+  color:var(--ink2);border-radius:9px;cursor:pointer;font-size:16px;display:grid;place-items:center;
+  padding:0}
+.iconbtn:active{background:var(--surf2)}
+.iconbtn.busy{color:var(--accent);border-color:var(--accent)}
+.status{font-size:11.5px;color:var(--ink3);margin:6px auto 0;max-width:1180px;
+  font-family:var(--f-mono);display:flex;gap:8px;align-items:center}
+.status .dot{width:6px;height:6px;border-radius:50%;background:var(--good);flex:none}
+.status.stale .dot{background:var(--warn)}
+.status.err .dot{background:var(--bad)}
+
+/* ---------- summary ---------- */
+.summary{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;margin-bottom:12px}
+.sc{background:var(--surf);padding:9px 11px}
+.sc .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);font-weight:700}
+.sc .v{font-family:var(--f-mono);font-size:19px;font-weight:600;letter-spacing:-.02em;margin-top:2px;
+  font-variant-numeric:tabular-nums}
+.sc .n{font-size:10.5px;color:var(--ink3)}
+
+/* ---------- presets ---------- */
+.presets{display:flex;gap:6px;margin-bottom:11px;overflow-x:auto;padding-bottom:3px;
+  scrollbar-width:none}
+.presets::-webkit-scrollbar{display:none}
+.chip{font-family:var(--f-body);font-size:13px;font-weight:500;padding:7px 13px;border-radius:100px;
+  border:1px solid var(--line);background:var(--surf);color:var(--ink2);cursor:pointer;
+  white-space:nowrap;flex:none}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+
+/* ---------- filters ---------- */
+.filtbtn{width:100%;padding:10px;font-family:var(--f-body);font-size:14px;font-weight:600;
+  border:1px solid var(--line);background:var(--surf);color:var(--ink);border-radius:var(--r);
+  cursor:pointer;margin-bottom:11px;display:flex;justify-content:space-between;align-items:center}
+.filtbtn .cnt{font-family:var(--f-mono);font-size:12px;color:var(--accent-ink);font-weight:600}
+.rail{background:var(--surf);border:1px solid var(--line);border-radius:var(--r);padding:14px;
+  box-shadow:var(--shadow);margin-bottom:13px}
+.rail[hidden]{display:none}
+.fg{padding:11px 0;border-bottom:1px solid var(--line)}
+.fg:first-child{padding-top:0} .fg:last-child{border-bottom:0;padding-bottom:0}
+.fg h3{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink3);font-weight:700;
+  margin:0 0 8px}
+.row{display:flex;align-items:center;gap:9px;margin:9px 0}
+.row label{font-size:14px;color:var(--ink2);flex:1}
+input[type=checkbox],input[type=radio]{accent-color:var(--accent);width:19px;height:19px;flex:none;margin:0}
+input[type=range]{width:100%;accent-color:var(--accent);height:26px}
+.rng{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:12.5px;
+  color:var(--ink2);font-variant-numeric:tabular-nums}
+select,input[type=text]{width:100%;font-family:var(--f-body);font-size:15px;padding:9px;
+  border:1px solid var(--line);border-radius:8px;background:var(--surf2);color:var(--ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.reset{width:100%;margin-top:12px;padding:10px;font-size:14px;font-weight:500;border:1px solid var(--line);
+  background:var(--surf2);color:var(--ink2);border-radius:8px;cursor:pointer}
+
+/* ---------- results ---------- */
+.bar{display:flex;gap:9px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.count{font-size:13px;color:var(--ink2)}
+.count b{font-family:var(--f-mono);color:var(--ink);font-weight:600}
+.bar select{width:auto;font-size:13px;padding:6px 8px}
+.list{display:flex;flex-direction:column;gap:9px}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:var(--r);padding:12px 13px;
+  box-shadow:var(--shadow);display:block;text-decoration:none;color:inherit}
+.card:active{border-color:var(--accent)}
+.card.hot{border-left:3px solid var(--good);padding-left:11px}
+.card.flagged{border-left:3px solid var(--warn);padding-left:11px}
+.chead{display:flex;gap:11px;align-items:flex-start;justify-content:space-between}
+.ttl{margin:0;font-size:14.5px;font-weight:600;line-height:1.34;flex:1}
+.pricecol{text-align:right;flex:none}
+.price{font-family:var(--f-mono);font-size:20px;font-weight:600;letter-spacing:-.02em;line-height:1;
+  font-variant-numeric:tabular-nums}
+.ptype{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);
+  margin-top:3px}
+.deal{display:inline-block;font-family:var(--f-mono);font-size:11px;font-weight:600;padding:2px 7px;
+  border-radius:100px;background:var(--surf2);color:var(--ink2);margin-top:4px;white-space:nowrap}
+.deal.g{background:var(--good-soft);color:var(--good)}
+.deal.w{background:var(--warn-soft);color:var(--warn)}
+.specs{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px}
+.sp{font-family:var(--f-mono);font-size:11px;padding:2.5px 6px;border-radius:5px;background:var(--surf2);
+  color:var(--ink2)}
+.sp.gpu{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.sp.ram16{background:var(--good-soft);color:var(--good);font-weight:600}
+.sp.dim{color:var(--ink3)}
+.meta{font-size:11.5px;color:var(--ink3);display:flex;flex-wrap:wrap;gap:8px;margin-top:7px}
+.flag{font-size:10.5px;font-weight:600;padding:2px 6px;border-radius:5px}
+.flag.w{background:var(--warn-soft);color:var(--warn)}
+.flag.b{background:var(--bad-soft);color:var(--bad)}
+.more,.empty{width:100%;margin-top:12px;padding:13px;font-size:14px;border:1px solid var(--line);
+  background:var(--surf);color:var(--ink2);border-radius:var(--r);cursor:pointer;text-align:center}
+.empty{border-style:dashed;color:var(--ink3);cursor:default;line-height:1.6}
+.boot{padding:50px 20px;text-align:center;color:var(--ink3);font-size:14px;line-height:1.7}
+@media (min-width:860px){
+  .summary{grid-template-columns:repeat(4,1fr)}
+  .cols{display:grid;grid-template-columns:260px minmax(0,1fr);gap:20px;align-items:start}
+  .rail{position:sticky;top:96px}
+  .rail[hidden]{display:block}
+  .filtbtn{display:none}
+  body{font-size:15px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="toprow">
+    <h1 class="brand">Laptopjacht</h1>
+    <button class="iconbtn" id="theme" aria-label="Toggle theme">◐</button>
+    <button class="iconbtn" id="refresh" aria-label="Refresh listings">↻</button>
+  </div>
+  <div class="status" id="status"><span class="dot"></span><span id="statustext">starting…</span></div>
+</div>
+
+<div class="wrap">
+  <div id="boot" class="boot">Loading listings…</div>
+  <div id="app" hidden>
+    <section class="summary" id="summary"></section>
+    <div class="presets">
+      <button class="chip" data-preset="gaming">Gaming-capable</button>
+      <button class="chip" data-preset="dev">Dev · 16GB+</button>
+      <button class="chip" data-preset="sweet">Sweet spot</button>
+      <button class="chip" data-preset="max">Max out €600</button>
+      <button class="chip" data-preset="cheap">Under €300</button>
+      <button class="chip" data-preset="steal">Biggest discounts</button>
+    </div>
+    <button class="filtbtn" id="filtbtn">Filters <span class="cnt" id="filtcnt"></span></button>
+    <div class="cols">
+      <aside class="rail" id="rail" hidden>
+        <div class="fg"><h3>Price</h3>
+          <input type="range" id="pmin" min="40" max="600" step="10" value="40">
+          <input type="range" id="pmax" min="40" max="600" step="10" value="600">
+          <div class="rng"><span id="pminL">€40</span><span id="pmaxL">€600</span></div></div>
+        <div class="fg"><h3>Graphics</h3>
+          <div class="row"><input type="radio" name="gpu" id="g-any" value="any" checked><label for="g-any">Any</label></div>
+          <div class="row"><input type="radio" name="gpu" id="g-ded" value="ded"><label for="g-ded">Dedicated GPU only</label></div>
+          <div class="row"><input type="radio" name="gpu" id="g-esp" value="esp"><label for="g-esp">GTX 1650+ (esports)</label></div>
+          <div class="row"><input type="radio" name="gpu" id="g-aaa" value="aaa"><label for="g-aaa">GTX 1660Ti+ (AAA medium)</label></div></div>
+        <div class="fg"><h3>Memory</h3>
+          <div class="row"><input type="radio" name="ram" id="r-any" value="0" checked><label for="r-any">Any</label></div>
+          <div class="row"><input type="radio" name="ram" id="r-8" value="8"><label for="r-8">8 GB or more</label></div>
+          <div class="row"><input type="radio" name="ram" id="r-16" value="16"><label for="r-16">16 GB or more</label></div>
+          <div class="row"><input type="radio" name="ram" id="r-32" value="32"><label for="r-32">32 GB or more</label></div></div>
+        <div class="fg"><h3>Listing type</h3>
+          <div class="row"><input type="checkbox" id="t-fixed" checked><label for="t-fixed">Vaste prijs (fixed)</label></div>
+          <div class="row"><input type="checkbox" id="t-bid" checked><label for="t-bid">Bieden (offers)</label></div></div>
+        <div class="fg"><h3>Condition &amp; delivery</h3>
+          <div class="row"><input type="checkbox" id="c-good"><label for="c-good">“Zo goed als nieuw” or better</label></div>
+          <div class="row"><input type="checkbox" id="c-ship"><label for="c-ship">Can be shipped</label></div>
+          <div class="row"><input type="checkbox" id="c-nl" checked><label for="c-nl">Netherlands only</label></div></div>
+        <div class="fg"><h3>Freshness</h3>
+          <select id="age">
+            <option value="9999">Any age</option>
+            <option value="3">Posted last 3 days</option>
+            <option value="7" selected>Posted last week</option>
+            <option value="14">Posted last 2 weeks</option>
+            <option value="30">Posted last month</option>
+          </select></div>
+        <div class="fg"><h3>Risk</h3>
+          <div class="row"><input type="checkbox" id="x-risk" checked><label for="x-risk">Hide wear/damage notes</label></div>
+          <div class="row"><input type="checkbox" id="x-auc" checked><label for="x-auc">Hide auction-style</label></div>
+          <div class="row"><input type="checkbox" id="x-deal"><label for="x-deal">Hide too-good-to-be-true</label></div></div>
+        <div class="fg"><h3>Search</h3>
+          <input type="text" id="q" placeholder="ThinkPad, Nitro, Amsterdam…"></div>
+        <button class="reset" id="reset">Reset all filters</button>
+      </aside>
+      <main>
+        <div class="bar">
+          <div class="count"><b id="n">0</b> matching · median <b id="nmed">—</b></div>
+          <select id="sort">
+            <option value="fit">Best fit</option>
+            <option value="deal">Biggest discount</option>
+            <option value="cheap">Cheapest</option>
+            <option value="power">Most powerful</option>
+            <option value="new">Newest</option>
+          </select>
+        </div>
+        <div class="list" id="list"></div>
+        <button class="more" id="more" hidden>Show more</button>
+      </main>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var DATA=null, shown=40;
+
+/* ---------- theme ---------- */
+try{var th=localStorage.getItem('lpj-theme'); if(th)document.documentElement.setAttribute('data-theme',th);}catch(e){}
+$('theme').addEventListener('click',function(){
+  var cur=document.documentElement.getAttribute('data-theme');
+  var next = cur==='dark' ? 'light' : cur==='light' ? 'dark'
+           : (matchMedia('(prefers-color-scheme:dark)').matches?'light':'dark');
+  document.documentElement.setAttribute('data-theme',next);
+  try{localStorage.setItem('lpj-theme',next)}catch(e){}
+});
+
+/* ---------- status ---------- */
+function setStatus(text,cls){
+  $('statustext').textContent=text;
+  $('status').className='status'+(cls?' '+cls:'');
+}
+function ago(ms){
+  if(ms<0) return 'never';
+  var m=Math.round(ms/60000);
+  if(m<1) return 'just now';
+  if(m<60) return m+' min ago';
+  var h=Math.round(m/60); if(h<24) return h+' h ago';
+  return Math.round(h/24)+' d ago';
+}
+function refreshStatus(){
+  if(!window.Android||!Android.cacheAge){setStatus('browser preview','');return}
+  var a=Android.cacheAge();
+  setStatus(DATA? 'updated '+ago(a)+' · '+DATA.meta.n.toLocaleString('nl-NL')+' listings'
+                : 'no data yet — tap ↻',
+            a<0?'err':a>6*3600000?'stale':'');
+}
+
+/* ---------- bridge callbacks (called from Java) ---------- */
+window.__lpjStatus=function(){ $('refresh').classList.add('busy'); setStatus('refreshing…',''); };
+window.__lpjData=function(){ $('refresh').classList.remove('busy'); load(); };
+window.__lpjError=function(e){ $('refresh').classList.remove('busy');
+  setStatus('refresh failed: '+e,'err'); };
+
+$('refresh').addEventListener('click',function(){
+  if(window.Android&&Android.refresh) Android.refresh();
+  else location.reload();
+});
+
+/* ---------- load ---------- */
+function load(){
+  var raw='';
+  try{ if(window.Android&&Android.getData) raw=Android.getData(); }catch(e){}
+  if(raw){ try{ boot(JSON.parse(raw)); return; }catch(e){} }
+  // browser fallback (GitHub Pages / desktop preview)
+  fetch('https://raw.githubusercontent.com/Deunnis/marktplaats-laptopjacht/data/listings.json')
+    .then(function(r){return r.json()}).then(boot)
+    .catch(function(){
+      $('boot').innerHTML='No listings downloaded yet.<br>Tap ↻ above to fetch them.';
+    });
+}
+function boot(d){
+  DATA=d;
+  d.items.forEach(function(o){
+    var s=0;
+    s+= o.gt>=60?42 : o.gt>=48?34 : o.gt>=36?20 : o.gt>=14?8 : 3;
+    s+= o.ram>=32?26 : o.ram>=16?24 : o.ram>=8?13 : 5;
+    s+= Math.min(o.ce,240)*0.055;
+    s+= Math.min(o.deal||1,2.2)*11;
+    s+= o.ssd>=512?5 : o.ssd>=256?3 : 0;
+    if(o.risk)s-=7; if(o.auc)s-=5; if(o.tgtf)s-=9;
+    if(o.age!==null&&o.age>30)s-=6;
+    if(o.abroad)s-=4;
+    o.fit=s;
+  });
+  $('boot').hidden=true; $('app').hidden=false;
+  refreshStatus(); render();
+}
+
+/* ---------- filtering ---------- */
+function state(){
+  return {pmin:+$('pmin').value,pmax:+$('pmax').value,
+    gpu:document.querySelector('input[name=gpu]:checked').value,
+    ram:+document.querySelector('input[name=ram]:checked').value,
+    fixed:$('t-fixed').checked,bid:$('t-bid').checked,good:$('c-good').checked,
+    ship:$('c-ship').checked,nl:$('c-nl').checked,age:+$('age').value,
+    xrisk:$('x-risk').checked,xauc:$('x-auc').checked,xdeal:$('x-deal').checked,
+    q:$('q').value.trim().toLowerCase(),sort:$('sort').value};
+}
+function match(o,s){
+  if(o.p<s.pmin||o.p>s.pmax)return false;
+  if(s.gpu==='ded'&&(!o.g||o.g==='integrated'))return false;
+  if(s.gpu==='esp'&&o.gt<48)return false;
+  if(s.gpu==='aaa'&&o.gt<60)return false;
+  if(s.ram&&o.ram<s.ram)return false;
+  if(!((s.fixed&&o.pt==='FIXED')||(s.bid&&o.pt==='MIN_BID')))return false;
+  if(s.good&&!/nieuw/i.test(o.cond))return false;
+  if(s.ship&&!/verzend/i.test(o.dlv))return false;
+  if(s.nl&&o.abroad)return false;
+  if(o.age!==null&&o.age>s.age)return false;
+  if(s.xrisk&&o.risk)return false;
+  if(s.xauc&&o.auc)return false;
+  if(s.xdeal&&o.tgtf)return false;
+  if(s.q&&((o.t+' '+o.city+' '+o.g+' '+o.c).toLowerCase().indexOf(s.q)<0))return false;
+  return true;
+}
+var SORT={fit:function(a,b){return b.fit-a.fit},
+  deal:function(a,b){return (b.deal||0)-(a.deal||0)},
+  cheap:function(a,b){return a.p-b.p},
+  power:function(a,b){return b.cap-a.cap},
+  new:function(a,b){return (a.age===null?999:a.age)-(b.age===null?999:b.age)}};
+function esc(x){return String(x==null?'':x).replace(/[&<>"]/g,function(c){
+  return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function med(a){if(!a.length)return null;var b=a.slice().sort(function(x,y){return x-y});
+  var m=Math.floor(b.length/2);return b.length%2?b[m]:Math.round((b[m-1]+b[m])/2)}
+
+function card(o){
+  var cls='card'+(o.deal>=1.35&&!o.tgtf?' hot':'')+((o.risk||o.auc||o.tgtf)?' flagged':'');
+  var sp='<span class="sp '+(o.gt>=48?'gpu':'dim')+'">'+esc(o.g||'GPU ?')+'</span>'
+    +'<span class="sp'+(o.c?'':' dim')+'">'+esc(o.c||'CPU ?')+'</span>'
+    +(o.ram?'<span class="sp'+(o.ram>=16?' ram16':'')+'">'+o.ram+' GB</span>'
+           :'<span class="sp dim">RAM ?</span>')
+    +(o.ssd?'<span class="sp">'+(o.ssd>=1024?(o.ssd/1024).toFixed(1).replace(/\.0$/,'')+' TB'
+           :o.ssd+' GB')+' '+esc(o.sk)+'</span>'
+           :'<span class="sp dim">storage ?</span>');
+  var fl='';
+  if(o.tgtf)fl+='<span class="flag b">verify — far below class</span>';
+  if(o.auc)fl+='<span class="flag w">auction-style</span>';
+  if(o.risk)fl+='<span class="flag w">wear/damage</span>';
+  if(o.abroad)fl+='<span class="flag w">'+esc(o.ctry)+'</span>';
+  var dl=o.deal?'<span class="deal '+(o.deal>=1.35?'g':o.deal<1?'w':'')+'">'+o.deal.toFixed(2)
+    +'× '+(o.cm?'class':'spec')+'</span>':'';
+  var age=o.age===null?esc(o.dt):(o.age===0?'today':o.age===1?'yesterday':o.age+'d ago');
+  return '<a class="'+cls+'" href="'+esc(o.u)+'" target="_blank" rel="noopener">'
+    +'<div class="chead"><h2 class="ttl">'+esc(o.t)+'</h2>'
+    +'<div class="pricecol"><div class="price">€'+o.p+'</div>'
+    +'<div class="ptype">'+(o.pt==='FIXED'?'vaste prijs':'bieden')+'</div>'+dl+'</div></div>'
+    +'<div class="specs">'+sp+'</div>'
+    +'<div class="meta"><span>'+esc(o.city||'—')+'</span><span>'+age+'</span>'
+    +'<span>'+esc(o.cond||'condition n/a')+'</span>'+fl+'</div></a>';
+}
+function tile(k,v,n){return '<div class="sc"><div class="k">'+k+'</div><div class="v">'+v
+  +'</div><div class="n">'+n+'</div></div>'}
+
+function render(){
+  if(!DATA)return;
+  var s=state(), out=DATA.items.filter(function(o){return match(o,s)});
+  out.sort(SORT[s.sort]);
+  var pr=out.map(function(o){return o.p});
+  $('n').textContent=out.length.toLocaleString('nl-NL');
+  $('nmed').textContent=out.length?'€'+med(pr):'—';
+  $('filtcnt').textContent=out.length.toLocaleString('nl-NL')+' shown';
+  var dg=out.filter(function(o){return o.gt>=48});
+  var r16=out.filter(function(o){return o.ram>=16});
+  var best=out.filter(function(o){return !o.tgtf&&!o.risk&&!o.auc&&o.cm}).sort(SORT.deal)[0];
+  $('summary').innerHTML=tile('Matching',out.length.toLocaleString('nl-NL'),
+      'of '+DATA.meta.n.toLocaleString('nl-NL'))
+    +tile('Gaming',dg.length,'GTX 1650+')
+    +tile('16GB+',r16.length,'no upgrade')
+    +tile('Best deal',best?best.deal.toFixed(2)+'×':'—',best?esc(best.g):'none');
+  var sl=out.slice(0,shown);
+  $('list').innerHTML=sl.length?sl.map(card).join('')
+    :'<div class="empty">Nothing matches these filters.<br>Try widening price, enabling '
+     +'<b>Bieden</b>, or relaxing freshness.</div>';
+  $('more').hidden=out.length<=shown;
+  $('more').textContent='Show more — '+(out.length-shown).toLocaleString('nl-NL')+' left';
+}
+
+/* ---------- wiring ---------- */
+function sync(){$('pminL').textContent='€'+$('pmin').value;
+  $('pmaxL').textContent='€'+$('pmax').value}
+function changed(){
+  if(+$('pmin').value>+$('pmax').value){var t=$('pmin').value;$('pmin').value=$('pmax').value;$('pmax').value=t}
+  shown=40;sync();render();
+  document.querySelectorAll('.chip').forEach(function(c){c.setAttribute('aria-pressed','false')});
+}
+document.querySelectorAll('.rail input,.rail select,#sort').forEach(function(el){
+  el.addEventListener('input',changed);el.addEventListener('change',changed)});
+$('more').addEventListener('click',function(){shown+=40;render()});
+$('filtbtn').addEventListener('click',function(){$('rail').hidden=!$('rail').hidden});
+$('reset').addEventListener('click',function(){
+  $('pmin').value=40;$('pmax').value=600;$('g-any').checked=true;$('r-any').checked=true;
+  $('t-fixed').checked=true;$('t-bid').checked=true;$('c-good').checked=false;$('c-ship').checked=false;
+  $('c-nl').checked=true;$('age').value='7';$('x-risk').checked=true;$('x-auc').checked=true;
+  $('x-deal').checked=false;$('q').value='';$('sort').value='fit';changed()});
+var PRE={gaming:{g:'g-esp',ram:'r-any',age:'14',sort:'fit'},
+  dev:{g:'g-any',ram:'r-16',age:'14',sort:'fit'},
+  sweet:{g:'g-esp',ram:'r-16',age:'30',sort:'deal',pmin:200,pmax:500},
+  max:{g:'g-aaa',ram:'r-16',age:'30',sort:'power',pmin:400,pmax:600},
+  cheap:{g:'g-any',ram:'r-8',age:'14',sort:'deal',pmin:40,pmax:300},
+  steal:{g:'g-ded',ram:'r-any',age:'30',sort:'deal'}};
+document.querySelectorAll('.chip').forEach(function(c){
+  c.addEventListener('click',function(){
+    var p=PRE[c.dataset.preset];if(!p)return;
+    $('pmin').value=p.pmin||40;$('pmax').value=p.pmax||600;
+    $(p.g).checked=true;$(p.ram).checked=true;
+    $('t-fixed').checked=true;$('t-bid').checked=true;
+    $('age').value=p.age;$('sort').value=p.sort;
+    $('x-risk').checked=true;$('x-auc').checked=true;
+    shown=40;sync();render();
+    document.querySelectorAll('.chip').forEach(function(o){o.setAttribute('aria-pressed','false')});
+    c.setAttribute('aria-pressed','true');
+  })});
+sync(); load(); setInterval(refreshStatus,60000);
+})();
+</script>
+</body>
+</html>

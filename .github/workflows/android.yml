@@ -1,0 +1,58 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Build release APK
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew assembleRelease --no-daemon --console=plain
+
+      - name: Stage APK
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/release/*.apk out/laptopjacht.apk
+          ls -la out/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: laptopjacht-apk
+          path: out/laptopjacht.apk
+          retention-days: 30
+
+      - name: Publish rolling "latest" release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Recreating the same tag keeps the download URL stable:
+          # /releases/latest/download/laptopjacht.apk
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest out/laptopjacht.apk \
+            --title "Laptopjacht (latest)" \
+            --notes "Debug-signed APK for sideloading. Built from ${GITHUB_SHA:0:7} on $(date -u +%Y-%m-%d).
+
+          Install: download on your phone, allow \"install unknown apps\" for your browser, open the file.
+          Data refreshes itself from the \`data\` branch every 6 hours; pull the latest with the ↻ button."

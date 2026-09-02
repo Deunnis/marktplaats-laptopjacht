@@ -1,0 +1,69 @@
+name: Scrape Marktplaats
+
+on:
+  schedule:
+    # every 6 hours (offset so we're not on the hour with everyone else)
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Harvest and score listings
+        run: python scraper/run.py
+
+      - name: Publish to the data branch
+        run: |
+          set -euo pipefail
+          size=$(stat -c%s data/listings.json)
+          echo "payload: $((size/1024)) KB"
+
+          # Single-commit orphan branch, force-pushed: the repo never grows
+          # even though we publish a fresh snapshot 4x a day.
+          rm -rf /tmp/pub && mkdir -p /tmp/pub
+          cp data/listings.json /tmp/pub/
+          cd /tmp/pub
+          git init -q -b data
+          git config user.name  "laptopjacht-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add listings.json
+          git commit -qm "listings snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push -f \
+            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" \
+            data
+
+      - name: Summary
+        run: |
+          python - <<'PY' >> $GITHUB_STEP_SUMMARY
+          import json
+          d = json.load(open('data/listings.json'))
+          m = d['meta']
+          it = d['items']
+          dg = [o for o in it if o['gt'] >= 48]
+          print(f"### Snapshot {m['built']}\n")
+          print(f"- **{m['n']}** laptops under EUR 600 ({m['nfixed']} fixed / {m['nbid']} bid)")
+          print(f"- **{len(dg)}** with a dedicated GPU (GTX 1650+)")
+          print(f"- **{sum(1 for o in it if o['ram']>=16)}** with 16GB+ RAM\n")
+          best = sorted([o for o in dg if not o['tgtf'] and o['cm']],
+                        key=lambda o: -o['deal'])[:5]
+          if best:
+              print("| Deal | Price | GPU | RAM | Where |")
+              print("|---|---|---|---|---|")
+              for o in best:
+                  print(f"| {o['deal']}x | EUR {o['p']} | {o['g']} | {o['ram'] or '?'}GB | {o['city']} |")
+          PY

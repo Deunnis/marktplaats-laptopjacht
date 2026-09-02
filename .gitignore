@@ -1,0 +1,14 @@
+# Snapshots live on the force-pushed `data` branch, not in main's history.
+data/listings.json
+
+# Android / Gradle
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+*.apk
+*.iml
+.idea/
+
+__pycache__/
+*.pyc
