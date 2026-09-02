@@ -82,8 +82,16 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public boolean isFetching() { return fetching; }
 
-        /** Called by the in-page Refresh button and by pull-to-refresh. */
-        @JavascriptInterface public void refresh() { fetchData(true); }
+        /**
+         * Called by the in-page Refresh button.
+         *
+         * JavascriptInterface methods are delivered on the "JavaBridge" thread, and every
+         * WebView method must be called on the thread that created it. Hop to the UI thread
+         * first or evaluateJavascript() throws and the refresh never starts.
+         */
+        @JavascriptInterface public void refresh() {
+            runOnUiThread(() -> fetchData(true));
+        }
     }
 
     // ------------------------------------------------------------ networking
@@ -114,8 +122,18 @@ public class MainActivity extends Activity {
     private void fetchData(final boolean userInitiated) {
         if (fetching) return;
         fetching = true;
-        notifyJs("__lpjStatus", "'fetching'");
+        try {
+            notifyJs("__lpjStatus", "'fetching'");
+            startFetch();
+        } catch (Throwable t) {
+            // Without this the flag stays set and every later tap is a no-op.
+            fetching = false;
+            Log.w(TAG, "could not start fetch", t);
+            notifyJs("__lpjError", "'could not start'");
+        }
+    }
 
+    private void startFetch() {
         pool.execute(() -> {
             String err = null;
             try {
@@ -164,9 +182,16 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void notifyJs(String fn, String arg) {
+    private void notifyJs(final String fn, final String arg) {
         if (web == null) return;
-        web.evaluateJavascript("if(window." + fn + ")window." + fn + "(" + arg + ")", null);
+        runOnUiThread(() -> {
+            if (web == null) return;
+            try {
+                web.evaluateJavascript("if(window." + fn + ")window." + fn + "(" + arg + ")", null);
+            } catch (Throwable t) {
+                Log.w(TAG, "notifyJs failed", t);
+            }
+        });
     }
 
     @Override public void onBackPressed() {

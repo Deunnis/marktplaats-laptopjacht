@@ -273,8 +273,21 @@ window.__lpjError=function(e){ $('refresh').classList.remove('busy');
   setStatus('refresh failed: '+e,'err'); };
 
 $('refresh').addEventListener('click',function(){
-  if(window.Android&&Android.refresh) Android.refresh();
-  else location.reload();
+  try{
+    if(window.Android&&Android.refresh){
+      Android.refresh();
+      // If the bridge never calls back, say so rather than looking dead.
+      setTimeout(function(){
+        if($('refresh').classList.contains('busy')){
+          $('refresh').classList.remove('busy');
+          setStatus('refresh timed out — check connection','err');
+        }
+      },60000);
+    } else location.reload();
+  }catch(e){
+    $('refresh').classList.remove('busy');
+    setStatus('refresh failed: '+e,'err');
+  }
 });
 
 /* ---------- load ---------- */
